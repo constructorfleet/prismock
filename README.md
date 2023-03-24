@@ -77,37 +77,49 @@ beforeAll(async () => {
 
 Then, you will be able to write your tests as if your app was using an in-memory Prisma client.
 
-### Alternative Synchronous Client Generation
+### Synchronous Client Generation
 
-You may have the option to generate the Prismock client synchronously if you have access to the DMMF (Datamodel Meta Format).
+You may have the option to generate the Prismock client synchronously if you have access to the DMMF (Datamodel Meta Format) generated with the `PrismaClient`:
 
 ```ts
 import { generatePrismockSync } from 'prismock';
 import { Prisma } from "__generated__/client";
 
-const models  = Prisma.dmmf.datamodel.models;
-
-let app: INestApplication;
-
-beforeAll(async () => {
-  const prismock = generatePrismockSync({ models });
-
-  const moduleRef = await Test.createTestingModule({ imports: [] })
-    .overrideProvider(PrismaService)
-    .useValue(prismock)
-    .compile();
-
-  app = moduleRef.createNestApplication();
-  await app.init();
-})
+const models = Prisma.dmmf.datamodel.models;
+const prismock = generatePrismockSync({ models });
 ```
 
 # API
 
 ```ts
+type PrismockOptions = {
+  // The path to the prisma schema file used to define the Prismock Client API
+  pathToSchema?: string,
+  // A list of pre-generated models that will define the Prismock Clientapi
+  models?: DMMF.Model[]
+}
+```
+
+The following will attempt to asynchronously analyse the Prisma schema for models and the operations that can be applied to said models.
+```ts
 generatePrismock(
   pathToSchema?: string,
 ): Promise<PrismaClient>
+```
+
+If you provide both the `schemaPath` and `models` options, it will attempt to use the Models to build the client, turning this asynchronous method into a synchronous method.
+```ts
+generatePrismock(
+  pathToSchema?: string,
+): Promise<PrismaClient>
+```
+*NOTE* If using the `models` fails, it will not fall back to the `schemaPath` - Yet. This will be updated when that is implemented.
+
+If you provide the `models` option, you should use the purely synchronous generation function which returns the client directly, without having to handle an unnecessary Promise chain:
+```ts
+generatePrismockSync(
+  models?: DMMF.Model[],
+): PrismaClient
 ```
 
 The returned object is similar to a PrismaClient, which can be used as-is.
